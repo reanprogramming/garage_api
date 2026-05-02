@@ -3,14 +3,16 @@
 namespace Illuminate\Cache;
 
 use Exception;
+use Illuminate\Contracts\Cache\CanFlushLocks;
 use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Contracts\Filesystem\LockTimeoutException;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Filesystem\LockableFile;
 use Illuminate\Support\InteractsWithTime;
+use RuntimeException;
 
-class FileStore implements Store, LockProvider
+class FileStore implements CanFlushLocks, LockProvider, Store
 {
     use InteractsWithTime, RetrievesMultipleKeys;
 
@@ -29,6 +31,13 @@ class FileStore implements Store, LockProvider
     protected $directory;
 
     /**
+     * The file cache lock directory.
+     *
+     * @var string|null
+     */
+    protected $lockDirectory;
+
+    /**
      * Octal representation of the cache file permissions.
      *
      * @var int|null
@@ -36,24 +45,32 @@ class FileStore implements Store, LockProvider
     protected $filePermission;
 
     /**
+     * The classes that should be allowed during unserialization.
+     *
+     * @var array|bool|null
+     */
+    protected $serializableClasses;
+
+    /**
      * Create a new file cache store instance.
      *
      * @param  \Illuminate\Filesystem\Filesystem  $files
      * @param  string  $directory
      * @param  int|null  $filePermission
-     * @return void
+     * @param  array|bool|null  $serializableClasses
      */
-    public function __construct(Filesystem $files, $directory, $filePermission = null)
+    public function __construct(Filesystem $files, $directory, $filePermission = null, $serializableClasses = null)
     {
         $this->files = $files;
         $this->directory = $directory;
         $this->filePermission = $filePermission;
+        $this->serializableClasses = $serializableClasses;
     }
 
     /**
      * Retrieve an item from the cache by key.
      *
-     * @param  string|array  $key
+     * @param  string  $key
      * @return mixed
      */
     public function get($key)
@@ -210,7 +227,14 @@ class FileStore implements Store, LockProvider
      */
     public function lock($name, $seconds = 0, $owner = null)
     {
-        return new FileLock($this, $name, $seconds, $owner);
+        $this->ensureCacheDirectoryExists($this->lockDirectory ?? $this->directory);
+
+        return new FileLock(
+            new static($this->files, $this->lockDirectory ?? $this->directory, $this->filePermission, $this->serializableClasses),
+            "file-store-lock:{$name}",
+            $seconds,
+            $owner
+        );
     }
 
     /**
@@ -226,6 +250,24 @@ class FileStore implements Store, LockProvider
     }
 
     /**
+     * Adjust the expiration time of a cached item.
+     *
+     * @param  string  $key
+     * @param  int  $seconds
+     * @return bool
+     */
+    public function touch($key, $seconds)
+    {
+        $payload = $this->getPayload($this->getPrefix().$key);
+
+        if (is_null($payload['data'])) {
+            return false;
+        }
+
+        return $this->put($key, $payload['data'], $seconds);
+    }
+
+    /**
      * Remove an item from the cache.
      *
      * @param  string  $key
@@ -234,7 +276,11 @@ class FileStore implements Store, LockProvider
     public function forget($key)
     {
         if ($this->files->exists($file = $this->path($key))) {
-            return $this->files->delete($file);
+            return tap($this->files->delete($file), function ($forgotten) use ($key) {
+                if ($forgotten && $this->files->exists($file = $this->path("illuminate:cache:flexible:created:{$key}"))) {
+                    $this->files->delete($file);
+                }
+            });
         }
 
         return false;
@@ -263,6 +309,34 @@ class FileStore implements Store, LockProvider
     }
 
     /**
+     * Remove all locks from the store.
+     *
+     * @return bool
+     *
+     * @throws \RuntimeException
+     */
+    public function flushLocks(): bool
+    {
+        if (! $this->hasSeparateLockStore()) {
+            throw new RuntimeException('Flushing locks is only supported when the lock store is separate from the cache store.');
+        }
+
+        if (! $this->files->isDirectory($this->lockDirectory)) {
+            return false;
+        }
+
+        foreach ($this->files->directories($this->lockDirectory) as $lockDirectory) {
+            $deleted = $this->files->deleteDirectory($lockDirectory);
+
+            if (! $deleted || $this->files->exists($lockDirectory)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Retrieve an item and expiry time from the cache by key.
      *
      * @param  string  $key
@@ -276,9 +350,11 @@ class FileStore implements Store, LockProvider
         // just return null. Otherwise, we'll get the contents of the file and get
         // the expiration UNIX timestamps from the start of the file's contents.
         try {
-            $expire = substr(
-                $contents = $this->files->get($path, true), 0, 10
-            );
+            if (is_null($contents = $this->files->get($path, true))) {
+                return $this->emptyPayload();
+            }
+
+            $expire = substr($contents, 0, 10);
         } catch (Exception) {
             return $this->emptyPayload();
         }
@@ -293,7 +369,7 @@ class FileStore implements Store, LockProvider
         }
 
         try {
-            $data = unserialize(substr($contents, 10));
+            $data = $this->unserialize(substr($contents, 10));
         } catch (Exception) {
             $this->forget($key);
 
@@ -306,6 +382,21 @@ class FileStore implements Store, LockProvider
         $time = $expire - $this->currentTime();
 
         return compact('data', 'time');
+    }
+
+    /**
+     * Unserialize the given value.
+     *
+     * @param  string  $value
+     * @return mixed
+     */
+    protected function unserialize($value)
+    {
+        if ($this->serializableClasses !== null) {
+            return unserialize($value, ['allowed_classes' => $this->serializableClasses]);
+        }
+
+        return unserialize($value);
     }
 
     /**
@@ -324,7 +415,7 @@ class FileStore implements Store, LockProvider
      * @param  string  $key
      * @return string
      */
-    protected function path($key)
+    public function path($key)
     {
         $parts = array_slice(str_split($hash = sha1($key), 2), 0, 2);
 
@@ -365,6 +456,32 @@ class FileStore implements Store, LockProvider
     }
 
     /**
+     * Set the working directory of the cache.
+     *
+     * @param  string  $directory
+     * @return $this
+     */
+    public function setDirectory($directory)
+    {
+        $this->directory = $directory;
+
+        return $this;
+    }
+
+    /**
+     * Set the cache directory where locks should be stored.
+     *
+     * @param  string|null  $lockDirectory
+     * @return $this
+     */
+    public function setLockDirectory($lockDirectory)
+    {
+        $this->lockDirectory = $lockDirectory;
+
+        return $this;
+    }
+
+    /**
      * Get the cache key prefix.
      *
      * @return string
@@ -372,5 +489,15 @@ class FileStore implements Store, LockProvider
     public function getPrefix()
     {
         return '';
+    }
+
+    /**
+     * Determine if the lock store is separate from the cache store.
+     *
+     * @return bool
+     */
+    public function hasSeparateLockStore(): bool
+    {
+        return $this->lockDirectory !== null && $this->lockDirectory !== $this->directory;
     }
 }

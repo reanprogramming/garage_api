@@ -15,18 +15,20 @@ use function date;
 use function dirname;
 use function str_ends_with;
 use SebastianBergmann\CodeCoverage\CodeCoverage;
+use SebastianBergmann\CodeCoverage\FileCouldNotBeWrittenException;
 use SebastianBergmann\CodeCoverage\Node\Directory as DirectoryNode;
 use SebastianBergmann\CodeCoverage\Report\Thresholds;
 use SebastianBergmann\CodeCoverage\Util\Filesystem;
+use SebastianBergmann\Template\Exception;
 use SebastianBergmann\Template\Template;
 
-final class Facade
+final readonly class Facade
 {
-    private readonly string $templatePath;
-    private readonly string $generator;
-    private readonly Colors $colors;
-    private readonly Thresholds $thresholds;
-    private readonly CustomCssFile $customCssFile;
+    private string $templatePath;
+    private string $generator;
+    private Colors $colors;
+    private Thresholds $thresholds;
+    private CustomCssFile $customCssFile;
 
     public function __construct(string $generator = '', ?Colors $colors = null, ?Thresholds $thresholds = null, ?CustomCssFile $customCssFile = null)
     {
@@ -39,16 +41,17 @@ final class Facade
 
     public function process(CodeCoverage $coverage, string $target): void
     {
-        $target = $this->directory($target);
-        $report = $coverage->getReport();
-        $date   = date('D M j G:i:s T Y');
+        $target            = $this->directory($target);
+        $report            = $coverage->getReport();
+        $date              = date('D M j G:i:s T Y');
+        $hasBranchCoverage = $coverage->getData(true)->functionCoverage() !== [];
 
         $dashboard = new Dashboard(
             $this->templatePath,
             $this->generator,
             $date,
             $this->thresholds,
-            $coverage->collectsBranchAndPathCoverage()
+            $hasBranchCoverage,
         );
 
         $directory = new Directory(
@@ -56,7 +59,7 @@ final class Facade
             $this->generator,
             $date,
             $this->thresholds,
-            $coverage->collectsBranchAndPathCoverage()
+            $hasBranchCoverage,
         );
 
         $file = new File(
@@ -64,7 +67,7 @@ final class Facade
             $this->generator,
             $date,
             $this->thresholds,
-            $coverage->collectsBranchAndPathCoverage()
+            $hasBranchCoverage,
         );
 
         $directory->render($report, $target . 'index.html');
@@ -95,8 +98,8 @@ final class Facade
     {
         $dir = $this->directory($target . '_css');
 
+        copy($this->templatePath . 'css/billboard.min.css', $dir . 'billboard.min.css');
         copy($this->templatePath . 'css/bootstrap.min.css', $dir . 'bootstrap.min.css');
-        copy($this->templatePath . 'css/nv.d3.min.css', $dir . 'nv.d3.min.css');
         copy($this->customCssFile->path(), $dir . 'custom.css');
         copy($this->templatePath . 'css/octicons.css', $dir . 'octicons.css');
 
@@ -105,11 +108,9 @@ final class Facade
         copy($this->templatePath . 'icons/file-directory.svg', $dir . 'file-directory.svg');
 
         $dir = $this->directory($target . '_js');
-        copy($this->templatePath . 'js/bootstrap.min.js', $dir . 'bootstrap.min.js');
-        copy($this->templatePath . 'js/popper.min.js', $dir . 'popper.min.js');
-        copy($this->templatePath . 'js/d3.min.js', $dir . 'd3.min.js');
+        copy($this->templatePath . 'js/billboard.pkgd.min.js', $dir . 'billboard.pkgd.min.js');
+        copy($this->templatePath . 'js/bootstrap.bundle.min.js', $dir . 'bootstrap.bundle.min.js');
         copy($this->templatePath . 'js/jquery.min.js', $dir . 'jquery.min.js');
-        copy($this->templatePath . 'js/nv.d3.min.js', $dir . 'nv.d3.min.js');
         copy($this->templatePath . 'js/file.js', $dir . 'file.js');
     }
 
@@ -124,10 +125,20 @@ final class Facade
                 'success-high'   => $this->colors->successHigh(),
                 'warning'        => $this->colors->warning(),
                 'danger'         => $this->colors->danger(),
-            ]
+            ],
         );
 
-        $template->renderTo($this->directory($target . '_css') . 'style.css');
+        try {
+            $template->renderTo($this->directory($target . '_css') . 'style.css');
+            // @codeCoverageIgnoreStart
+        } catch (Exception $e) {
+            throw new FileCouldNotBeWrittenException(
+                $e->getMessage(),
+                $e->getCode(),
+                $e,
+            );
+            // @codeCoverageIgnoreEnd
+        }
     }
 
     private function directory(string $directory): string

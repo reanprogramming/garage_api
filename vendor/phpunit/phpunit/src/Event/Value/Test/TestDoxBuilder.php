@@ -9,21 +9,21 @@
  */
 namespace PHPUnit\Event\Code;
 
-use PHPUnit\Event\TestData\MoreThanOneDataSetFromDataProviderException;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Logging\TestDox\NamePrettifier;
 
 /**
+ * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
+ *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
 final class TestDoxBuilder
 {
-    /**
-     * @throws MoreThanOneDataSetFromDataProviderException
-     */
+    private static ?NamePrettifier $namePrettifier = null;
+
     public static function fromTestCase(TestCase $testCase): TestDox
     {
-        $prettifier = new NamePrettifier;
+        $prettifier = self::namePrettifier();
 
         return new TestDox(
             $prettifier->prettifyTestClassName($testCase::class),
@@ -33,17 +33,28 @@ final class TestDoxBuilder
     }
 
     /**
-     * @psalm-param class-string $className
-     * @psalm-param non-empty-string $methodName
+     * @param class-string     $className
+     * @param non-empty-string $methodName
      */
     public static function fromClassNameAndMethodName(string $className, string $methodName): TestDox
     {
-        $prettifier = new NamePrettifier;
+        $prettifier = self::namePrettifier();
+
+        $prettifiedMethodName = $prettifier->prettifyTestMethodName($methodName);
 
         return new TestDox(
             $prettifier->prettifyTestClassName($className),
-            $prettifier->prettifyTestMethodName($methodName),
-            $prettifier->prettifyTestMethodName($methodName),
+            $prettifiedMethodName,
+            $prettifiedMethodName,
         );
+    }
+
+    private static function namePrettifier(): NamePrettifier
+    {
+        if (self::$namePrettifier === null) {
+            self::$namePrettifier = new NamePrettifier;
+        }
+
+        return self::$namePrettifier;
     }
 }

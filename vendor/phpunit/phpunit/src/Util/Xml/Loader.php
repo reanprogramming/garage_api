@@ -9,20 +9,21 @@
  */
 namespace PHPUnit\Util\Xml;
 
-use function chdir;
-use function dirname;
+use const LIBXML_NONET;
 use function error_reporting;
 use function file_get_contents;
-use function getcwd;
 use function libxml_get_errors;
 use function libxml_use_internal_errors;
 use function sprintf;
+use function trim;
 use DOMDocument;
 
 /**
+ * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
+ *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
-final class Loader
+final readonly class Loader
 {
     /**
      * @throws XmlException
@@ -37,22 +38,31 @@ final class Loader
         if ($contents === false) {
             throw new XmlException(
                 sprintf(
-                    'Could not read "%s".',
-                    $filename
-                )
+                    'Could not read XML from file "%s"',
+                    $filename,
+                ),
             );
         }
 
-        return $this->load($contents, $filename);
+        if (trim($contents) === '') {
+            throw new XmlException(
+                sprintf(
+                    'Could not parse XML from empty file "%s"',
+                    $filename,
+                ),
+            );
+        }
+
+        return $this->load($contents);
     }
 
     /**
      * @throws XmlException
      */
-    public function load(string $actual, ?string $filename = null): DOMDocument
+    public function load(string $actual): DOMDocument
     {
         if ($actual === '') {
-            throw new XmlException('Could not load XML from empty string');
+            throw new XmlException('Could not parse XML from empty string');
         }
 
         $document                     = new DOMDocument;
@@ -61,23 +71,7 @@ final class Loader
         $internal  = libxml_use_internal_errors(true);
         $message   = '';
         $reporting = error_reporting(0);
-
-        // Required for XInclude
-        if ($filename !== null) {
-            // Required for XInclude on Windows
-            if (DIRECTORY_SEPARATOR === '\\') {
-                $cwd = getcwd();
-                @chdir(dirname($filename));
-            }
-
-            $document->documentURI = $filename;
-        }
-
-        $loaded = $document->loadXML($actual);
-
-        if ($filename !== null) {
-            $document->xinclude();
-        }
+        $loaded    = $document->loadXML($actual, LIBXML_NONET);
 
         foreach (libxml_get_errors() as $error) {
             $message .= "\n" . $error->message;
@@ -86,23 +80,11 @@ final class Loader
         libxml_use_internal_errors($internal);
         error_reporting($reporting);
 
-        if (isset($cwd)) {
-            @chdir($cwd);
-        }
-
-        if ($loaded === false || $message !== '') {
-            if ($filename !== null) {
-                throw new XmlException(
-                    sprintf(
-                        'Could not load "%s".%s',
-                        $filename,
-                        $message !== '' ? "\n" . $message : ''
-                    )
-                );
-            }
-
+        if ($loaded === false) {
             if ($message === '') {
+                // @codeCoverageIgnoreStart
                 $message = 'Could not load XML for unknown reason';
+                // @codeCoverageIgnoreEnd
             }
 
             throw new XmlException($message);

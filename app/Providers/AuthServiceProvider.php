@@ -2,18 +2,18 @@
 
 namespace App\Providers;
 
-// use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Laravel\Passport\Passport;
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
     /**
-     * The model to policy mappings for the application.
-     *
-     * @var array<class-string, class-string>
+     * The policy mappings for the application.
      */
     protected $policies = [
-        //
+        // Example:
+        // 'App\Models\Product' => 'App\Policies\ProductPolicy',
     ];
 
     /**
@@ -21,6 +21,35 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register policies
+        $this->registerPolicies();
+
+        // Passport routes (OAuth2 endpoints)
+
+        /**
+         * 🔐 Token Security Settings
+         */
+
+        // Access Token Expiration (short = more secure)
+        Passport::tokensExpireIn(now()->addMinutes(15));
+
+        // Refresh Token Expiration
+        Passport::refreshTokensExpireIn(now()->addDays(7));
+
+        // Personal Access Token Expiration
+        Passport::personalAccessTokensExpireIn(now()->addMonths(1));
+
+        /**
+         * 🔑 Optional: Scopes (permissions for tokens)
+         */
+        Passport::tokensCan([
+            'admin' => 'Admin access',
+            'user' => 'User access',
+        ]);
+
+        // Default scope
+        Passport::setDefaultScope([
+            'user',
+        ]);
     }
 }

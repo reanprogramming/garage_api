@@ -2,14 +2,22 @@
 
 namespace Illuminate\Foundation\Bus;
 
+use Illuminate\Bus\DebounceLock;
 use Illuminate\Bus\UniqueLock;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Foundation\Queue\InteractsWithUniqueJobs;
+use Illuminate\Queue\Attributes\DebounceFor;
+use Illuminate\Queue\Attributes\ReadsQueueAttributes;
+use LogicException;
 
 class PendingDispatch
 {
+    use InteractsWithUniqueJobs;
+    use ReadsQueueAttributes;
+
     /**
      * The job.
      *
@@ -28,7 +36,6 @@ class PendingDispatch
      * Create a new pending job dispatch.
      *
      * @param  mixed  $job
-     * @return void
      */
     public function __construct($job)
     {
@@ -38,7 +45,7 @@ class PendingDispatch
     /**
      * Set the desired connection for the job.
      *
-     * @param  string|null  $connection
+     * @param  \BackedEnum|string|null  $connection
      * @return $this
      */
     public function onConnection($connection)
@@ -51,7 +58,7 @@ class PendingDispatch
     /**
      * Set the desired queue for the job.
      *
-     * @param  string|null  $queue
+     * @param  \BackedEnum|string|null  $queue
      * @return $this
      */
     public function onQueue($queue)
@@ -62,9 +69,39 @@ class PendingDispatch
     }
 
     /**
+     * Set the desired job "group".
+     *
+     * This feature is only supported by some queues, such as Amazon SQS.
+     *
+     * @param  \UnitEnum|string  $group
+     * @return $this
+     */
+    public function onGroup($group)
+    {
+        $this->job->onGroup($group);
+
+        return $this;
+    }
+
+    /**
+     * Set the desired job deduplicator callback.
+     *
+     * This feature is only supported by some queues, such as Amazon SQS FIFO.
+     *
+     * @param  callable|null  $deduplicator
+     * @return $this
+     */
+    public function withDeduplicator($deduplicator)
+    {
+        $this->job->withDeduplicator($deduplicator);
+
+        return $this;
+    }
+
+    /**
      * Set the desired connection for the chain.
      *
-     * @param  string|null  $connection
+     * @param  \BackedEnum|string|null  $connection
      * @return $this
      */
     public function allOnConnection($connection)
@@ -77,7 +114,7 @@ class PendingDispatch
     /**
      * Set the desired queue for the chain.
      *
-     * @param  string|null  $queue
+     * @param  \BackedEnum|string|null  $queue
      * @return $this
      */
     public function allOnQueue($queue)
@@ -96,6 +133,18 @@ class PendingDispatch
     public function delay($delay)
     {
         $this->job->delay($delay);
+
+        return $this;
+    }
+
+    /**
+     * Set the delay for the job to zero seconds.
+     *
+     * @return $this
+     */
+    public function withoutDelay()
+    {
+        $this->job->withoutDelay();
 
         return $this;
     }
@@ -140,11 +189,12 @@ class PendingDispatch
     /**
      * Indicate that the job should be dispatched after the response is sent to the browser.
      *
+     * @param  bool  $afterResponse
      * @return $this
      */
-    public function afterResponse()
+    public function afterResponse($afterResponse = true)
     {
-        $this->afterResponse = true;
+        $this->afterResponse = $afterResponse;
 
         return $this;
     }
@@ -161,7 +211,49 @@ class PendingDispatch
         }
 
         return (new UniqueLock(Container::getInstance()->make(Cache::class)))
-                    ->acquire($this->job);
+            ->acquire($this->job);
+    }
+
+    /**
+     * Acquire a debounce lock for the job and set its delay.
+     *
+     * @return void
+     *
+     * @throws LogicException
+     */
+    protected function acquireDebounceLock()
+    {
+        $debounceFor = $this->getAttributeValue($this->job, DebounceFor::class, 'debounceFor');
+
+        if ($debounceFor === null) {
+            return;
+        }
+
+        $lock = new DebounceLock(Container::getInstance()->make(Cache::class));
+
+        if ($this->job instanceof ShouldBeUnique) {
+            throw new LogicException('A debounced job cannot also implement ShouldBeUnique.');
+        }
+
+        $result = $lock->acquire(
+            $this->job, $debounceFor
+        );
+
+        $this->job->debounceOwner = $result['owner'];
+
+        if (is_null($this->job->delay)) {
+            $this->job->delay = $result['maxWaitExceeded'] ? 0 : $debounceFor;
+        }
+    }
+
+    /**
+     * Get the underlying job instance.
+     *
+     * @return mixed
+     */
+    public function getJob()
+    {
+        return $this->job;
     }
 
     /**
@@ -185,12 +277,22 @@ class PendingDispatch
      */
     public function __destruct()
     {
+        $this->addUniqueJobInformationToContext($this->job);
+
         if (! $this->shouldDispatch()) {
+            $this->removeUniqueJobInformationFromContext($this->job);
+
             return;
-        } elseif ($this->afterResponse) {
+        }
+
+        $this->acquireDebounceLock();
+
+        if ($this->afterResponse) {
             app(Dispatcher::class)->dispatchAfterResponse($this->job);
         } else {
             app(Dispatcher::class)->dispatch($this->job);
         }
+
+        $this->removeUniqueJobInformationFromContext($this->job);
     }
 }

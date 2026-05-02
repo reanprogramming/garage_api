@@ -2,6 +2,10 @@
 
 namespace Illuminate\Database\Eloquent\Concerns;
 
+use Illuminate\Database\Eloquent\Attributes\Initialize;
+use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Attributes\WithoutTimestamps;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Date;
 
 trait HasTimestamps
@@ -21,15 +25,36 @@ trait HasTimestamps
     protected static $ignoreTimestampsOn = [];
 
     /**
+     * Initialize the HasTimestamps trait.
+     *
+     * @return void
+     */
+    #[Initialize]
+    public function initializeHasTimestamps()
+    {
+        if ($this->timestamps === true) {
+            if (static::resolveClassAttribute(WithoutTimestamps::class) !== null) {
+                $this->timestamps = false;
+            } elseif (($table = static::resolveClassAttribute(Table::class)) && $table->timestamps !== null) {
+                $this->timestamps = $table->timestamps;
+            }
+        }
+    }
+
+    /**
      * Update the model's update timestamp.
      *
-     * @param  string|null  $attribute
+     * @param  array|string|null  $attribute
      * @return bool
      */
     public function touch($attribute = null)
     {
         if ($attribute) {
-            $this->$attribute = $this->freshTimestamp();
+            $time = $this->freshTimestamp();
+
+            foreach (Arr::wrap($attribute) as $column) {
+                $this->{$column} = $time;
+            }
 
             return $this->save();
         }
@@ -46,7 +71,7 @@ trait HasTimestamps
     /**
      * Update the model's update timestamp without raising any events.
      *
-     * @param  string|null  $attribute
+     * @param  array|string|null  $attribute
      * @return bool
      */
     public function touchQuietly($attribute = null)
@@ -155,29 +180,32 @@ trait HasTimestamps
     }
 
     /**
-     * Get the fully qualified "created at" column.
+     * Get the fully-qualified "created at" column.
      *
      * @return string|null
      */
     public function getQualifiedCreatedAtColumn()
     {
-        return $this->qualifyColumn($this->getCreatedAtColumn());
+        $column = $this->getCreatedAtColumn();
+
+        return $column ? $this->qualifyColumn($column) : null;
     }
 
     /**
-     * Get the fully qualified "updated at" column.
+     * Get the fully-qualified "updated at" column.
      *
      * @return string|null
      */
     public function getQualifiedUpdatedAtColumn()
     {
-        return $this->qualifyColumn($this->getUpdatedAtColumn());
+        $column = $this->getUpdatedAtColumn();
+
+        return $column ? $this->qualifyColumn($column) : null;
     }
 
     /**
      * Disable timestamps for the current class during the given callback scope.
      *
-     * @param  callable  $callback
      * @return mixed
      */
     public static function withoutTimestamps(callable $callback)
@@ -199,7 +227,11 @@ trait HasTimestamps
         try {
             return $callback();
         } finally {
-            static::$ignoreTimestampsOn = array_values(array_diff(static::$ignoreTimestampsOn, $models));
+            foreach ($models as $model) {
+                if (($key = array_search($model, static::$ignoreTimestampsOn, true)) !== false) {
+                    unset(static::$ignoreTimestampsOn[$key]);
+                }
+            }
         }
     }
 

@@ -9,34 +9,40 @@
  */
 namespace PHPUnit\Event\Telemetry;
 
-use PHPUnit\Event\RuntimeException;
-
 /**
- * @psalm-immutable
+ * @immutable
  *
  * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
  */
-final class GarbageCollectorStatus
+final readonly class GarbageCollectorStatus
 {
-    private readonly int $runs;
-    private readonly int $collected;
-    private readonly int $threshold;
-    private readonly int $roots;
-    private readonly ?bool $running;
-    private readonly ?bool $protected;
-    private readonly ?bool $full;
-    private readonly ?int $bufferSize;
+    private int $runs;
+    private int $collected;
+    private int $threshold;
+    private int $roots;
+    private float $applicationTime;
+    private float $collectorTime;
+    private float $destructorTime;
+    private float $freeTime;
+    private bool $running;
+    private bool $protected;
+    private bool $full;
+    private int $bufferSize;
 
-    public function __construct(int $runs, int $collected, int $threshold, int $roots, ?bool $running, ?bool $protected, ?bool $full, ?int $bufferSize)
+    public function __construct(int $runs, int $collected, int $threshold, int $roots, float $applicationTime, float $collectorTime, float $destructorTime, float $freeTime, bool $running, bool $protected, bool $full, int $bufferSize)
     {
-        $this->runs       = $runs;
-        $this->collected  = $collected;
-        $this->threshold  = $threshold;
-        $this->roots      = $roots;
-        $this->running    = $running;
-        $this->protected  = $protected;
-        $this->full       = $full;
-        $this->bufferSize = $bufferSize;
+        $this->runs            = $runs;
+        $this->collected       = $collected;
+        $this->threshold       = $threshold;
+        $this->roots           = $roots;
+        $this->applicationTime = $applicationTime;
+        $this->collectorTime   = $collectorTime;
+        $this->destructorTime  = $destructorTime;
+        $this->freeTime        = $freeTime;
+        $this->running         = $running;
+        $this->protected       = $protected;
+        $this->full            = $full;
+        $this->bufferSize      = $bufferSize;
     }
 
     public function runs(): int
@@ -59,62 +65,43 @@ final class GarbageCollectorStatus
         return $this->roots;
     }
 
-    /**
-     * @psalm-assert-if-true !null $this->running
-     * @psalm-assert-if-true !null $this->protected
-     * @psalm-assert-if-true !null $this->full
-     * @psalm-assert-if-true !null $this->bufferSize
-     */
-    public function hasExtendedInformation(): bool
+    public function applicationTime(): float
     {
-        return $this->running !== null;
+        return $this->applicationTime;
     }
 
-    /**
-     * @throws RuntimeException on PHP < 8.3
-     */
+    public function collectorTime(): float
+    {
+        return $this->collectorTime;
+    }
+
+    public function destructorTime(): float
+    {
+        return $this->destructorTime;
+    }
+
+    public function freeTime(): float
+    {
+        return $this->freeTime;
+    }
+
     public function isRunning(): bool
     {
-        if ($this->running === null) {
-            throw new RuntimeException('Information not available');
-        }
-
         return $this->running;
     }
 
-    /**
-     * @throws RuntimeException on PHP < 8.3
-     */
     public function isProtected(): bool
     {
-        if ($this->protected === null) {
-            throw new RuntimeException('Information not available');
-        }
-
         return $this->protected;
     }
 
-    /**
-     * @throws RuntimeException on PHP < 8.3
-     */
     public function isFull(): bool
     {
-        if ($this->full === null) {
-            throw new RuntimeException('Information not available');
-        }
-
         return $this->full;
     }
 
-    /**
-     * @throws RuntimeException on PHP < 8.3
-     */
     public function bufferSize(): int
     {
-        if ($this->bufferSize === null) {
-            throw new RuntimeException('Information not available');
-        }
-
         return $this->bufferSize;
     }
 }

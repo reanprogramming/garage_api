@@ -44,6 +44,9 @@ abstract class Renderer
         $this->hasBranchCoverage = $hasBranchCoverage;
     }
 
+    /**
+     * @param array<non-empty-string, float|int|string> $data
+     */
     protected function renderItemTemplate(Template $template, array $data): string
     {
         $numSeparator = '&nbsp;/&nbsp;';
@@ -55,7 +58,7 @@ abstract class Renderer
                 $data['numClasses'];
 
             $classesBar = $this->coverageBar(
-                $data['testedClassesPercent']
+                $data['testedClassesPercent'],
             );
         } else {
             $classesLevel                         = '';
@@ -71,7 +74,7 @@ abstract class Renderer
                 $data['numMethods'];
 
             $methodsBar = $this->coverageBar(
-                $data['testedMethodsPercent']
+                $data['testedMethodsPercent'],
             );
         } else {
             $methodsLevel                         = '';
@@ -87,7 +90,7 @@ abstract class Renderer
                 $data['numExecutableLines'];
 
             $linesBar = $this->coverageBar(
-                $data['linesExecutedPercent']
+                $data['linesExecutedPercent'],
             );
         } else {
             $linesLevel                           = '';
@@ -103,7 +106,7 @@ abstract class Renderer
                 $data['numExecutablePaths'];
 
             $pathsBar = $this->coverageBar(
-                $data['pathsExecutedPercent']
+                $data['pathsExecutedPercent'],
             );
         } else {
             $pathsLevel                           = '';
@@ -119,7 +122,7 @@ abstract class Renderer
                 $data['numExecutableBranches'];
 
             $branchesBar = $this->coverageBar(
-                $data['branchesExecutedPercent']
+                $data['branchesExecutedPercent'],
             );
         } else {
             $branchesLevel                           = '';
@@ -153,7 +156,7 @@ abstract class Renderer
                 'classes_tested_percent'    => $data['testedClassesPercentAsString'] ?? '',
                 'classes_level'             => $classesLevel,
                 'classes_number'            => $classesNumber,
-            ]
+            ],
         );
 
         return $template->render();
@@ -171,9 +174,9 @@ abstract class Renderer
                 'version'          => $this->version,
                 'runtime'          => $this->runtimeString(),
                 'generator'        => $this->generator,
-                'low_upper_bound'  => $this->thresholds->lowUpperBound(),
-                'high_lower_bound' => $this->thresholds->highLowerBound(),
-            ]
+                'low_upper_bound'  => (string) $this->thresholds->lowUpperBound(),
+                'high_lower_bound' => (string) $this->thresholds->highLowerBound(),
+            ],
         );
     }
 
@@ -196,7 +199,7 @@ abstract class Renderer
             if ($step !== $node) {
                 $breadcrumbs .= $this->inactiveBreadcrumb(
                     $step,
-                    array_pop($pathToRoot)
+                    array_pop($pathToRoot),
                 );
             } else {
                 $breadcrumbs .= $this->activeBreadcrumb($step);
@@ -210,7 +213,7 @@ abstract class Renderer
     {
         $buffer = sprintf(
             '         <li class="breadcrumb-item active">%s</li>' . "\n",
-            $node->name()
+            $node->name(),
         );
 
         if ($node instanceof DirectoryNode) {
@@ -225,7 +228,7 @@ abstract class Renderer
         return sprintf(
             '         <li class="breadcrumb-item"><a href="%sindex.html">%s</a></li>' . "\n",
             $pathToRoot,
-            $node->name()
+            $node->name(),
         );
     }
 
@@ -250,7 +253,7 @@ abstract class Renderer
         $template     = new Template(
             $templateName,
             '{{',
-            '}}'
+            '}}',
         );
 
         $template->setVar(['level' => $level, 'percent' => sprintf('%.2F', $percent)]);
@@ -280,7 +283,7 @@ abstract class Renderer
             '<a href="%s" target="_top">%s %s</a>',
             $runtime->getVendorUrl(),
             $runtime->getName(),
-            $runtime->getVersion()
+            $runtime->getVersion(),
         );
     }
 }

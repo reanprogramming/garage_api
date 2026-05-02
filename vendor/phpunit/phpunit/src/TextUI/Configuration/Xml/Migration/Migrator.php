@@ -9,18 +9,23 @@
  */
 namespace PHPUnit\TextUI\XmlConfiguration;
 
-use function sprintf;
+use function assert;
+use function str_contains;
+use DOMDocument;
+use DOMElement;
+use PHPUnit\Runner\Version;
 use PHPUnit\Util\Xml\Loader as XmlLoader;
 use PHPUnit\Util\Xml\XmlException;
 
 /**
+ * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
+ *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
-final class Migrator
+final readonly class Migrator
 {
     /**
      * @throws Exception
-     * @throws MigrationBuilderException
      * @throws MigrationException
      * @throws XmlException
      */
@@ -29,23 +34,48 @@ final class Migrator
         $origin = (new SchemaDetector)->detect($filename);
 
         if (!$origin->detected()) {
-            throw new Exception(
-                sprintf(
-                    '"%s" is not a valid PHPUnit XML configuration file that can be migrated',
-                    $filename,
-                )
-            );
+            throw new Exception('The file does not validate against any known schema');
         }
 
         $configurationDocument = (new XmlLoader)->loadFile($filename);
 
-        foreach ((new MigrationBuilder)->build($origin->version()) as $migration) {
-            $migration->migrate($configurationDocument);
+        if ($origin->version() === Version::series()) {
+            if (!$this->schemaLocationNeedsUpdate($configurationDocument)) {
+                throw new Exception('The file does not need to be migrated');
+            }
+
+            (new UpdateSchemaLocation)->migrate($configurationDocument);
+        } else {
+            foreach ((new MigrationBuilder)->build($origin->version()) as $migration) {
+                $migration->migrate($configurationDocument);
+            }
         }
 
         $configurationDocument->formatOutput       = true;
         $configurationDocument->preserveWhiteSpace = false;
 
-        return $configurationDocument->saveXML();
+        $xml = $configurationDocument->saveXML();
+
+        assert($xml !== false);
+
+        return $xml;
+    }
+
+    private function schemaLocationNeedsUpdate(DOMDocument $document): bool
+    {
+        $root = $document->documentElement;
+
+        assert($root instanceof DOMElement);
+
+        $schemaLocation = $root->getAttributeNS(
+            'http://www.w3.org/2001/XMLSchema-instance',
+            'noNamespaceSchemaLocation',
+        );
+
+        if (!str_contains($schemaLocation, '://')) {
+            return false;
+        }
+
+        return $schemaLocation !== 'https://schema.phpunit.de/' . Version::series() . '/phpunit.xsd';
     }
 }

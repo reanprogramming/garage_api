@@ -2,6 +2,7 @@
 
 namespace Illuminate\Database\Eloquent;
 
+use BackedEnum;
 use Illuminate\Database\RecordsNotFoundException;
 use Illuminate\Support\Arr;
 
@@ -34,11 +35,15 @@ class ModelNotFoundException extends RecordsNotFoundException
     public function setModel($model, $ids = [])
     {
         $this->model = $model;
-        $this->ids = Arr::wrap($ids);
+
+        $this->ids = array_map(
+            fn ($id) => $id instanceof BackedEnum ? $id->value : $id,
+            Arr::wrap($ids)
+        );
 
         $this->message = "No query results for model [{$model}]";
 
-        if (count($this->ids) > 0) {
+        if ($this->ids !== []) {
             $this->message .= ' '.implode(', ', $this->ids);
         } else {
             $this->message .= '.';

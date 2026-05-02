@@ -9,30 +9,32 @@
  */
 namespace PHPUnit\Event\Test;
 
+use const PHP_EOL;
 use function sprintf;
 use PHPUnit\Event\Code;
 use PHPUnit\Event\Code\Throwable;
 use PHPUnit\Event\Event;
 use PHPUnit\Event\Telemetry;
+use PHPUnit\Framework\TestCase;
 
 /**
- * @psalm-immutable
+ * @immutable
  *
  * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
  */
-final class BeforeFirstTestMethodErrored implements Event
+final readonly class BeforeFirstTestMethodErrored implements Event
 {
-    private readonly Telemetry\Info $telemetryInfo;
+    private Telemetry\Info $telemetryInfo;
 
     /**
-     * @psalm-var class-string
+     * @var class-string<TestCase>
      */
-    private readonly string $testClassName;
-    private readonly Code\ClassMethod $calledMethod;
-    private readonly Throwable $throwable;
+    private string $testClassName;
+    private Code\ClassMethod $calledMethod;
+    private Throwable $throwable;
 
     /**
-     * @psalm-param class-string $testClassName
+     * @param class-string<TestCase> $testClassName
      */
     public function __construct(Telemetry\Info $telemetryInfo, string $testClassName, Code\ClassMethod $calledMethod, Throwable $throwable)
     {
@@ -48,7 +50,7 @@ final class BeforeFirstTestMethodErrored implements Event
     }
 
     /**
-     * @psalm-return class-string
+     * @return class-string<TestCase>
      */
     public function testClassName(): string
     {
@@ -65,11 +67,14 @@ final class BeforeFirstTestMethodErrored implements Event
         return $this->throwable;
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function asString(): string
     {
         $message = $this->throwable->message();
 
-        if (!empty($message)) {
+        if ($message !== '') {
             $message = PHP_EOL . $message;
         }
 
@@ -77,7 +82,7 @@ final class BeforeFirstTestMethodErrored implements Event
             'Before First Test Method Errored (%s::%s)%s',
             $this->calledMethod->className(),
             $this->calledMethod->methodName(),
-            $message
+            $message,
         );
     }
 }

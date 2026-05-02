@@ -10,44 +10,60 @@
 namespace PHPUnit\Metadata;
 
 /**
- * @psalm-immutable
+ * @immutable
  *
  * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
  */
-final class DataProvider extends Metadata
+final readonly class DataProvider extends Metadata
 {
     /**
-     * @psalm-var class-string
+     * @var class-string
      */
-    private readonly string $className;
-    private readonly string $methodName;
+    private string $className;
 
     /**
-     * @psalm-param class-string $className
+     * @var non-empty-string
      */
-    protected function __construct(int $level, string $className, string $methodName)
+    private string $methodName;
+    private bool $validateArgumentCount;
+
+    /**
+     * @param int<0, 1>        $level
+     * @param class-string     $className
+     * @param non-empty-string $methodName
+     */
+    protected function __construct(int $level, string $className, string $methodName, bool $validateArgumentCount)
     {
         parent::__construct($level);
 
-        $this->className  = $className;
-        $this->methodName = $methodName;
+        $this->className             = $className;
+        $this->methodName            = $methodName;
+        $this->validateArgumentCount = $validateArgumentCount;
     }
 
-    public function isDataProvider(): bool
+    public function isDataProvider(): true
     {
         return true;
     }
 
     /**
-     * @psalm-return class-string
+     * @return class-string
      */
     public function className(): string
     {
         return $this->className;
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function methodName(): string
     {
         return $this->methodName;
+    }
+
+    public function validateArgumentCount(): bool
+    {
+        return $this->validateArgumentCount;
     }
 }

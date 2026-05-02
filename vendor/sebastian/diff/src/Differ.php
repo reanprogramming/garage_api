@@ -30,15 +30,11 @@ use SebastianBergmann\Diff\Output\DiffOutputBuilderInterface;
 
 final class Differ
 {
-    public const OLD = 0;
-
-    public const ADDED = 1;
-
-    public const REMOVED = 2;
-
-    public const DIFF_LINE_END_WARNING = 3;
-
-    public const NO_LINE_END_EOF_WARNING = 4;
+    public const int OLD                     = 0;
+    public const int ADDED                   = 1;
+    public const int REMOVED                 = 2;
+    public const int DIFF_LINE_END_WARNING   = 3;
+    public const int NO_LINE_END_EOF_WARNING = 4;
     private DiffOutputBuilderInterface $outputBuilder;
 
     public function __construct(DiffOutputBuilderInterface $outputBuilder)
@@ -46,14 +42,22 @@ final class Differ
         $this->outputBuilder = $outputBuilder;
     }
 
-    public function diff(array|string $from, array|string $to, LongestCommonSubsequenceCalculator $lcs = null): string
+    /**
+     * @param list<string>|string $from
+     * @param list<string>|string $to
+     */
+    public function diff(array|string $from, array|string $to, ?LongestCommonSubsequenceCalculator $lcs = null): string
     {
         $diff = $this->diffToArray($from, $to, $lcs);
 
         return $this->outputBuilder->getDiff($diff);
     }
 
-    public function diffToArray(array|string $from, array|string $to, LongestCommonSubsequenceCalculator $lcs = null): array
+    /**
+     * @param list<string>|string $from
+     * @param list<string>|string $to
+     */
+    public function diffToArray(array|string $from, array|string $to, ?LongestCommonSubsequenceCalculator $lcs = null): array
     {
         if (is_string($from)) {
             $from = $this->splitStringByLines($from);
@@ -80,11 +84,11 @@ final class Differ
         reset($to);
 
         foreach ($common as $token) {
-            while (($fromToken = reset($from)) !== $token) {
+            while ((/* from-token */ reset($from)) !== $token) {
                 $diff[] = [array_shift($from), self::REMOVED];
             }
 
-            while (($toToken = reset($to)) !== $token) {
+            while ((/* to-token */ reset($to)) !== $token) {
                 $diff[] = [array_shift($to), self::ADDED];
             }
 
@@ -133,7 +137,7 @@ final class Differ
         return new TimeEfficientLongestCommonSubsequenceCalculator;
     }
 
-    private function calculateEstimatedFootprint(array $from, array $to): float|int
+    private function calculateEstimatedFootprint(array $from, array $to): int
     {
         $itemSize = PHP_INT_SIZE === 4 ? 76 : 144;
 

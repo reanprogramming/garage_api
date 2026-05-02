@@ -12,6 +12,8 @@ namespace PHPUnit\Framework;
 use function array_filter;
 use function array_map;
 use function array_values;
+use function assert;
+use function count;
 use function explode;
 use function in_array;
 use function str_contains;
@@ -20,6 +22,8 @@ use PHPUnit\Metadata\DependsOnMethod;
 use Stringable;
 
 /**
+ * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
+ *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
 final class ExecutionOrderDependency implements Stringable
@@ -35,7 +39,7 @@ final class ExecutionOrderDependency implements Stringable
             '',
             '',
             false,
-            false
+            false,
         );
     }
 
@@ -45,7 +49,7 @@ final class ExecutionOrderDependency implements Stringable
             $metadata->className(),
             'class',
             $metadata->deepClone(),
-            $metadata->shallowClone()
+            $metadata->shallowClone(),
         );
     }
 
@@ -55,44 +59,46 @@ final class ExecutionOrderDependency implements Stringable
             $metadata->className(),
             $metadata->methodName(),
             $metadata->deepClone(),
-            $metadata->shallowClone()
+            $metadata->shallowClone(),
         );
     }
 
     /**
-     * @psalm-param list<ExecutionOrderDependency> $dependencies
+     * @param list<ExecutionOrderDependency> $dependencies
      *
-     * @psalm-return list<ExecutionOrderDependency>
+     * @return list<ExecutionOrderDependency>
      */
     public static function filterInvalid(array $dependencies): array
     {
         return array_values(
             array_filter(
                 $dependencies,
-                static fn (self $d) => $d->isValid()
-            )
+                static fn (self $d) => $d->isValid(),
+            ),
         );
     }
 
     /**
-     * @psalm-param list<ExecutionOrderDependency> $existing
-     * @psalm-param list<ExecutionOrderDependency> $additional
+     * @param list<ExecutionOrderDependency> $existing
+     * @param list<ExecutionOrderDependency> $additional
      *
-     * @psalm-return list<ExecutionOrderDependency>
+     * @return list<ExecutionOrderDependency>
      */
     public static function mergeUnique(array $existing, array $additional): array
     {
         $existingTargets = array_map(
-            static fn ($dependency) => $dependency->getTarget(),
-            $existing
+            static fn (ExecutionOrderDependency $dependency) => $dependency->getTarget(),
+            $existing,
         );
 
         foreach ($additional as $dependency) {
-            if (in_array($dependency->getTarget(), $existingTargets, true)) {
+            $additionalTarget = $dependency->getTarget();
+
+            if (in_array($additionalTarget, $existingTargets, true)) {
                 continue;
             }
 
-            $existingTargets[] = $dependency->getTarget();
+            $existingTargets[] = $additionalTarget;
             $existing[]        = $dependency;
         }
 
@@ -100,10 +106,10 @@ final class ExecutionOrderDependency implements Stringable
     }
 
     /**
-     * @psalm-param list<ExecutionOrderDependency> $left
-     * @psalm-param list<ExecutionOrderDependency> $right
+     * @param list<ExecutionOrderDependency> $left
+     * @param list<ExecutionOrderDependency> $right
      *
-     * @psalm-return list<ExecutionOrderDependency>
+     * @return list<ExecutionOrderDependency>
      */
     public static function diff(array $left, array $right): array
     {
@@ -117,8 +123,8 @@ final class ExecutionOrderDependency implements Stringable
 
         $diff         = [];
         $rightTargets = array_map(
-            static fn ($dependency) => $dependency->getTarget(),
-            $right
+            static fn (ExecutionOrderDependency $dependency) => $dependency->getTarget(),
+            $right,
         );
 
         foreach ($left as $dependency) {
@@ -134,19 +140,20 @@ final class ExecutionOrderDependency implements Stringable
 
     public function __construct(string $classOrCallableName, ?string $methodName = null, bool $deepClone = false, bool $shallowClone = false)
     {
+        $this->deepClone    = $deepClone;
+        $this->shallowClone = $shallowClone;
+
         if ($classOrCallableName === '') {
             return;
         }
 
         if (str_contains($classOrCallableName, '::')) {
+            assert(count(explode('::', $classOrCallableName)) === 2);
             [$this->className, $this->methodName] = explode('::', $classOrCallableName);
         } else {
             $this->className  = $classOrCallableName;
-            $this->methodName = !empty($methodName) ? $methodName : 'class';
+            $this->methodName = $methodName !== null && $methodName !== '' ? $methodName : 'class';
         }
-
-        $this->deepClone    = $deepClone;
-        $this->shallowClone = $shallowClone;
     }
 
     public function __toString(): string
@@ -154,6 +161,9 @@ final class ExecutionOrderDependency implements Stringable
         return $this->getTarget();
     }
 
+    /**
+     * @phpstan-assert-if-true non-empty-string $this->getTarget()
+     */
     public function isValid(): bool
     {
         // Invalid dependencies can be declared and are skipped by the runner

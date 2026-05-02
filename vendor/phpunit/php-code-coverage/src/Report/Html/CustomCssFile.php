@@ -13,11 +13,11 @@ use function is_file;
 use SebastianBergmann\CodeCoverage\InvalidArgumentException;
 
 /**
- * @psalm-immutable
+ * @immutable
  */
-final class CustomCssFile
+final readonly class CustomCssFile
 {
-    private readonly string $path;
+    private string $path;
 
     public static function default(): self
     {
@@ -31,7 +31,7 @@ final class CustomCssFile
     {
         if (!is_file($path)) {
             throw new InvalidArgumentException(
-                '$path does not exist'
+                '$path does not exist',
             );
         }
 

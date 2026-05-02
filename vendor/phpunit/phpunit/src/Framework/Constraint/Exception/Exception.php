@@ -14,6 +14,8 @@ use PHPUnit\Util\Filter;
 use Throwable;
 
 /**
+ * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
+ *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
 final class Exception extends Constraint
@@ -32,7 +34,7 @@ final class Exception extends Constraint
     {
         return sprintf(
             'exception of type "%s"',
-            $this->className
+            $this->className,
         );
     }
 
@@ -58,7 +60,7 @@ final class Exception extends Constraint
         if ($other === null) {
             return sprintf(
                 'exception of type "%s" is thrown',
-                $this->className
+                $this->className,
             );
         }
 
@@ -66,14 +68,14 @@ final class Exception extends Constraint
 
         if ($other instanceof Throwable) {
             $message = '. Message was: "' . $other->getMessage() . '" at'
-                . "\n" . Filter::getFilteredStacktrace($other);
+                . "\n" . Filter::stackTraceFromThrowableAsString($other);
         }
 
         return sprintf(
             'exception of type "%s" matches expected exception "%s"%s',
             $other::class,
             $this->className,
-            $message
+            $message,
         );
     }
 }

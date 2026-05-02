@@ -31,12 +31,18 @@ use PHPUnit\Event\Test\PhpDeprecationTriggered;
 use PHPUnit\Event\Test\PhpDeprecationTriggeredSubscriber;
 use PHPUnit\Event\Test\PhpNoticeTriggered;
 use PHPUnit\Event\Test\PhpNoticeTriggeredSubscriber;
+use PHPUnit\Event\Test\PhpunitDeprecationTriggered;
+use PHPUnit\Event\Test\PhpunitDeprecationTriggeredSubscriber;
+use PHPUnit\Event\Test\PhpunitErrorTriggered;
+use PHPUnit\Event\Test\PhpunitErrorTriggeredSubscriber;
 use PHPUnit\Event\Test\PhpunitWarningTriggered;
 use PHPUnit\Event\Test\PhpunitWarningTriggeredSubscriber;
 use PHPUnit\Event\Test\PhpWarningTriggered;
 use PHPUnit\Event\Test\PhpWarningTriggeredSubscriber;
 use PHPUnit\Event\Test\PreparationStarted;
 use PHPUnit\Event\Test\PreparationStartedSubscriber;
+use PHPUnit\Event\Test\PrintedUnexpectedOutput;
+use PHPUnit\Event\Test\PrintedUnexpectedOutputSubscriber;
 use PHPUnit\Event\Test\Skipped;
 use PHPUnit\Event\Test\SkippedSubscriber;
 use PHPUnit\Event\Test\WarningTriggered;
@@ -69,6 +75,10 @@ if (class_exists(Version::class) && (int) Version::series() >= 10) {
          */
         public function notify(Started $event): void
         {
+            if (! isset($_SERVER['COLLISION_PRINTER'])) {
+                return;
+            }
+
             $printer = new ReportablePrinter(new DefaultPrinter(true));
 
             if (isset($_SERVER['COLLISION_PRINTER_COMPACT'])) {
@@ -88,6 +98,15 @@ if (class_exists(Version::class) && (int) Version::series() >= 10) {
                         $this->printer()->setDecorated(
                             $event->configuration()->colors()
                         );
+                    }
+                },
+
+                // Test
+                new class($printer) extends Subscriber implements PrintedUnexpectedOutputSubscriber
+                {
+                    public function notify(PrintedUnexpectedOutput $event): void
+                    {
+                        $this->printer()->testPrintedUnexpectedOutput($event);
                     }
                 },
 
@@ -178,6 +197,14 @@ if (class_exists(Version::class) && (int) Version::series() >= 10) {
                     }
                 },
 
+                new class($printer) extends Subscriber implements PhpunitDeprecationTriggeredSubscriber
+                {
+                    public function notify(PhpunitDeprecationTriggered $event): void
+                    {
+                        $this->printer()->testPhpunitDeprecationTriggered($event);
+                    }
+                },
+
                 new class($printer) extends Subscriber implements PhpNoticeTriggeredSubscriber
                 {
                     public function notify(PhpNoticeTriggered $event): void
@@ -199,6 +226,14 @@ if (class_exists(Version::class) && (int) Version::series() >= 10) {
                     public function notify(PhpunitWarningTriggered $event): void
                     {
                         $this->printer()->testPhpunitWarningTriggered($event);
+                    }
+                },
+
+                new class($printer) extends Subscriber implements PhpunitErrorTriggeredSubscriber
+                {
+                    public function notify(PhpunitErrorTriggered $event): void
+                    {
+                        $this->printer()->testPhpunitErrorTriggered($event);
                     }
                 },
 
@@ -272,7 +307,7 @@ if (class_exists(Version::class) && (int) Version::series() >= 10) {
             if ($shouldRegister) {
                 self::$registered = true;
 
-                Facade::instance()->registerSubscriber(new self());
+                Facade::instance()->registerSubscriber(new self);
             }
         }
     }

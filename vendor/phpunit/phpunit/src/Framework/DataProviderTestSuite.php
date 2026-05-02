@@ -9,23 +9,32 @@
  */
 namespace PHPUnit\Framework;
 
+use function assert;
+use function class_exists;
+use function count;
 use function explode;
 use PHPUnit\Framework\TestSize\TestSize;
 use PHPUnit\Metadata\Api\Groups;
 
 /**
+ * @no-named-arguments Parameter names are not covered by the backward compatibility promise for PHPUnit
+ *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
 final class DataProviderTestSuite extends TestSuite
 {
     /**
-     * @psalm-var list<ExecutionOrderDependency>
+     * @var list<ExecutionOrderDependency>
      */
-    private array $dependencies   = [];
+    private array $dependencies = [];
+
+    /**
+     * @var ?non-empty-list<ExecutionOrderDependency>
+     */
     private ?array $providedTests = null;
 
     /**
-     * @psalm-param list<ExecutionOrderDependency> $dependencies
+     * @param list<ExecutionOrderDependency> $dependencies
      */
     public function setDependencies(array $dependencies): void
     {
@@ -41,19 +50,19 @@ final class DataProviderTestSuite extends TestSuite
     }
 
     /**
-     * @psalm-return list<ExecutionOrderDependency>
+     * @return non-empty-list<ExecutionOrderDependency>
      */
     public function provides(): array
     {
         if ($this->providedTests === null) {
-            $this->providedTests = [new ExecutionOrderDependency($this->getName())];
+            $this->providedTests = [new ExecutionOrderDependency($this->name())];
         }
 
         return $this->providedTests;
     }
 
     /**
-     * @psalm-return list<ExecutionOrderDependency>
+     * @return list<ExecutionOrderDependency>
      */
     public function requires(): array
     {
@@ -67,7 +76,11 @@ final class DataProviderTestSuite extends TestSuite
      */
     public function size(): TestSize
     {
-        [$className, $methodName] = explode('::', $this->getName());
+        assert(count(explode('::', $this->name())) === 2);
+        [$className, $methodName] = explode('::', $this->name());
+
+        assert(class_exists($className));
+        assert($methodName !== '');
 
         return (new Groups)->size($className, $methodName);
     }
