@@ -1,0 +1,157 @@
+@import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
+@plugin "@tailwindcss/typography";
+
+@theme {
+    --font-display: system-ui, -apple-system, BlinkMacSystemFont, Roboto,
+        Helvetica, Arial, sans-serif;
+
+    --color-primary: var(--color-blue-900);
+    --color-success: var(--color-green-800);
+    --color-danger: var(--color-rose-800);
+    --color-pending: var(--color-orange-800);
+    --color-warning: var(--color-yellow-800);
+    --color-background: var(--color-slate-50);
+    --color-foreground: var(--color-slate-700);
+
+    --background-image-accent: url("../images/accent.svg");
+    --background-image-noise: url("../images/noise.png");
+
+    --background-image-chevron-dark: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>');
+    --background-image-chevron-light: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>');
+
+    --background-image-chevron: var(--background-image-chevron-dark);
+
+    --background-image-empty-directory: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='786' height='786' viewBox='0 0 786 786'%3E%3Cdefs%3E%3ClinearGradient id='linear-gradient' x1='0.5' x2='0.5' y2='1' gradientUnits='objectBoundingBox'%3E%3Cstop offset='0' stop-color='%238a97ac'/%3E%3Cstop offset='1' stop-color='%235d6c83'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg id='Group_2' data-name='Group 2' transform='translate(-567 -93)'%3E%3Crect id='Rectangle_4' data-name='Rectangle 4' width='418' height='681' rx='40' transform='translate(896 109)' fill='%2395a5b9'/%3E%3Crect id='Rectangle_3' data-name='Rectangle 3' width='433' height='681' rx='40' transform='translate(606 93)' fill='%23a0aec0'/%3E%3Crect id='Rectangle_2' data-name='Rectangle 2' width='786' height='721' rx='40' transform='translate(567 158)' fill='url(%23linear-gradient)'/%3E%3C/g%3E%3C/svg%3E");
+    --background-image-directory: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='786' height='786' viewBox='0 0 786 786'%3E%3Cdefs%3E%3ClinearGradient id='linear-gradient' x1='0.5' x2='0.5' y2='1' gradientUnits='objectBoundingBox'%3E%3Cstop offset='0' stop-color='%238a97ac'/%3E%3Cstop offset='1' stop-color='%235d6c83'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg id='Group_3' data-name='Group 3' transform='translate(-567 -93)'%3E%3Crect id='Rectangle_4' data-name='Rectangle 4' width='418' height='681' rx='40' transform='translate(896 109)' fill='%2395a5b9'/%3E%3Crect id='Rectangle_3' data-name='Rectangle 3' width='433' height='681' rx='40' transform='translate(606 93)' fill='%23a0aec0'/%3E%3Crect id='Rectangle_2' data-name='Rectangle 2' width='742' height='734' rx='40' transform='translate(590 145)' fill='%23bec8d9'/%3E%3Crect id='Rectangle_5' data-name='Rectangle 5' width='786' height='692' rx='40' transform='translate(567 187)' fill='url(%23linear-gradient)'/%3E%3C/g%3E%3C/svg%3E%0A");
+    --background-image-file: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='628.027' height='786.012' viewBox='0 0 628.027 786.012'%3E%3Cdefs%3E%3ClinearGradient id='linear-gradient' x1='0.5' x2='0.5' y2='1' gradientUnits='objectBoundingBox'%3E%3Cstop offset='0' stop-color='%238a97ac'/%3E%3Cstop offset='1' stop-color='%235d6c83'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg id='Group_5' data-name='Group 5' transform='translate(-646 -92.988)'%3E%3Cpath id='Union_2' data-name='Union 2' d='M40,786A40,40,0,0,1,0,746V40A40,40,0,0,1,40,0H501V103h29v24h98V746a40,40,0,0,1-40,40Z' transform='translate(646 93)' fill='url(%23linear-gradient)'/%3E%3Cpath id='Intersection_2' data-name='Intersection 2' d='M.409,162.042l.058-109.9c31.605,29.739,125.37,125.377,125.37,125.377l-109.976.049A20.025,20.025,0,0,1,.409,162.042Z' transform='translate(1147 42)' fill='%23bec8d9' stroke='%23bec8d9' stroke-width='1'/%3E%3C/g%3E%3C/svg%3E%0A");
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: color-mix(
+            in oklch,
+            var(--color-foreground, currentColor),
+            transparent 90%
+        );
+    }
+}
+
+@layer components {
+    .image-fit {
+        position: relative;
+        & > img {
+            position: absolute;
+            object-fit: cover;
+            top: 0;
+            width: 100%;
+            height: 100%;
+        }
+    }
+}
+
+body {
+    font-family: var(--font-display);
+    font-size: theme(fontSize.sm);
+    color: var(--color-foreground);
+    line-height: theme(lineHeight.5);
+    letter-spacing: theme(letterSpacing.wide);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.box:not(.rounded-none) {
+    border-radius: theme(borderRadius.xl);
+}
+
+.dark {
+    --color-background: var(--color-black);
+    --color-foreground: var(--color-slate-300);
+    --background-image-chevron: var(--background-image-chevron-light);
+    .box {
+        --color-background: color-mix(
+            in oklch,
+            var(--color-white),
+            transparent 99%
+        );
+    }
+    .prose {
+        --tw-prose-body: var(--color-foreground);
+    }
+}
+
+[x-cloak] {
+    display: none;
+}
+
+/* CSS Loaders Keyframes */
+.loader-dots {
+    --color: var(--color-foreground);
+    width: 17px;
+    aspect-ratio: 2;
+    --_g: no-repeat
+        radial-gradient(circle closest-side, var(--color) 90%, #0000);
+    background: var(--_g) 0% 50%, var(--_g) 50% 50%, var(--_g) 100% 50%;
+    background-size: calc(100% / 3) 50%;
+    animation: l1 1s infinite linear;
+}
+@keyframes l1 {
+    20% {
+        background-position: 0% 0%, 50% 50%, 100% 50%;
+    }
+    40% {
+        background-position: 0% 100%, 50% 0%, 100% 50%;
+    }
+    60% {
+        background-position: 0% 50%, 50% 100%, 100% 0%;
+    }
+    80% {
+        background-position: 0% 50%, 50% 50%, 100% 100%;
+    }
+}
+
+.loader-spinner {
+    --color: var(--color-foreground);
+    width: 17px;
+    padding: 3px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--color);
+    --_m: conic-gradient(#0000 10%, #000), linear-gradient(#000 0 0) content-box;
+    -webkit-mask: var(--_m);
+    mask: var(--_m);
+    -webkit-mask-composite: source-out;
+    mask-composite: subtract;
+    animation: l2 1s infinite linear;
+}
+@keyframes l2 {
+    to {
+        transform: rotate(1turn);
+    }
+}
+
+[data-theme="default"] {
+    --color-primary: var(--color-blue-900);
+}
+[data-theme="1"] {
+    --color-primary: var(--color-blue-950);
+}
+[data-theme="2"] {
+    --color-primary: var(--color-sky-800);
+}
+[data-theme="3"] {
+    --color-primary: var(--color-cyan-800);
+}
+[data-theme="4"] {
+    --color-primary: var(--color-indigo-900);
+}
+[data-theme="5"] {
+    --color-primary: var(--color-gray-900);
+    &.dark {
+        --color-primary: var(--color-gray-300);
+    }
+}

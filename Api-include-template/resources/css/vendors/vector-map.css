@@ -1,0 +1,29 @@
+.jvm-tooltip {
+    @apply border;
+    position: fixed;
+    z-index: 50;
+    padding: theme("spacing.1") theme("spacing.3");
+    background: --alpha(var(--color-background) / 80%);
+    box-shadow: theme("boxShadow.sm");
+    border-radius: theme("borderRadius.lg");
+    display: none;
+    &.active {
+        display: block;
+    }
+}
+
+@keyframes ripple-stroke {
+    0% {
+        stroke-width: 5;
+        stroke-opacity: 1;
+    }
+    100% {
+        stroke-width: 25;
+        stroke-opacity: 0;
+    }
+}
+
+#jvm-markers-group > circle {
+    animation: ripple-stroke 1.5s ease-out infinite;
+    transform-origin: center;
+}

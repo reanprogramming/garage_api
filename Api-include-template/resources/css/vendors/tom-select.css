@@ -1,0 +1,46 @@
+@import "tom-select/dist/css/tom-select.css";
+
+.ts-wrapper {
+    @apply border-0;
+    width: 100%;
+    border-radius: theme("borderRadius.md");
+    .ts-control {
+        outline: none;
+        align-items: center;
+        border-color: inherit;
+        border-radius: inherit;
+        min-height: theme("spacing.10");
+        color: var(--color-foreground);
+        background-color: var(--color-background);
+    }
+    &.multi .ts-control > div {
+        color: var(--color-foreground);
+        background-color: --alpha(var(--color-foreground) / 10%);
+    }
+    &.plugin-remove_button:not(.rtl) .item .remove {
+        border-color: --alpha(var(--color-foreground) / 10%);
+    }
+    &.plugin-dropdown_input {
+        &.focus.dropdown-active .ts-control {
+            border-color: --alpha(var(--color-foreground) / 10%);
+        }
+        .dropdown-input {
+            outline: none;
+            border-color: --alpha(var(--color-foreground) / 10%);
+        }
+    }
+    &.single.input-active .ts-control {
+        background-color: var(--color-background);
+    }
+    .ts-dropdown {
+        margin-top: 0;
+        color: var(--color-foreground);
+        background-color: var(--color-background);
+        border-color: --alpha(var(--color-foreground) / 10%);
+        backdrop-filter: blur(theme("backdropBlur.xl"));
+        .active {
+            color: var(--color-foreground);
+            background-color: --alpha(var(--color-foreground) / 10%);
+        }
+    }
+}

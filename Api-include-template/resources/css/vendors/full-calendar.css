@@ -1,0 +1,20 @@
+:root {
+    @apply border-0;
+    --fc-event-bg-color: --alpha(var(--color-primary) / 20%) !important;
+    --fc-event-border-color: --alpha(var(--color-primary) / 60%) !important;
+    --fc-event-text-color: var(--color-primary) !important;
+    --fc-border-color: --alpha(var(--color-foreground) / 10%) !important;
+    --fc-button-bg-color: var(--color-background) !important;
+    --fc-button-border-color: --alpha(var(--color-foreground) / 20%) !important;
+    --fc-button-text-color: var(--color-foreground) !important;
+    --fc-button-active-bg-color: --alpha(var(--color-primary) / 20%) !important;
+    --fc-button-active-border-color: --alpha(
+        var(--color-primary) / 60%
+    ) !important;
+    --fc-button-hover-bg-color: --alpha(
+        var(--color-foreground) / 10%
+    ) !important;
+    --fc-button-hover-border-color: --alpha(
+        var(--color-foreground) / 10%
+    ) !important;
+}

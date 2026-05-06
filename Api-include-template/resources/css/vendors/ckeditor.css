@@ -1,0 +1,10 @@
+:root {
+    @apply border-0;
+    --ck-color-base-foreground: var(--color-foreground) !important;
+    --ck-color-base-background: var(--color-background) !important;
+    --ck-color-base-border: --alpha(var(--color-foreground) / 30%) !important;
+    --ck-color-button-default-hover-background: --alpha(
+        var(--color-foreground) / 10%
+    ) !important;
+    --ck-color-base-text: var(--color-foreground) !important;
+}

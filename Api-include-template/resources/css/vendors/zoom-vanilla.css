@@ -1,0 +1,6 @@
+@import "zoom-vanilla.js/dist/zoom.css";
+
+.zoom-overlay {
+    @apply border-0;
+    background-color: --alpha(var(--color-background) / 80%);
+}

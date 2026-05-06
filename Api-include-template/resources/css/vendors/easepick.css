@@ -1,0 +1,56 @@
+@import "@easepick/bundle/dist/index.css";
+
+:host {
+    --color-bg-default: var(--color-background);
+    --color-fg-default: var(--color-foreground);
+    --color-fg-primary: var(--color-primary);
+    --icon-chevron: var(--background-image-chevron);
+    .container {
+        z-index: 999;
+        box-shadow: 0 0 #0000;
+        main {
+            background: transparent;
+            .calendar {
+                @apply border-0;
+                padding: theme("spacing.3") theme("spacing.3")
+                    theme("spacing.5") theme("spacing.5");
+                border: 1px solid --alpha(var(--color-foreground) / 10%);
+                background: var(--color-background);
+                border-radius: theme("borderRadius.xl");
+                backdrop-filter: blur(theme("backdropBlur.xl"));
+                & > .days-grid > .day {
+                    border-radius: theme("borderRadius.lg");
+                }
+                & > .header .month-name {
+                    font-weight: theme("fontWeight.normal");
+                    & > span {
+                        font-weight: theme("fontWeight.medium");
+                    }
+                }
+                & > .header button {
+                    width: theme("spacing.8");
+                    height: theme("spacing.8");
+                    background-size: 70%;
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-image: var(--icon-chevron);
+                    border-radius: theme("borderRadius.lg");
+                    &:hover {
+                        background-color: --alpha(
+                            var(--color-background) / 50%
+                        );
+                    }
+                    &.previous-button {
+                        transform: rotate(90deg);
+                    }
+                    &.next-button {
+                        transform: rotate(-90deg);
+                    }
+                    & > svg {
+                        display: none;
+                    }
+                }
+            }
+        }
+    }
+}

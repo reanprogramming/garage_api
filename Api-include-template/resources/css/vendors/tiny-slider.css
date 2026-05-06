@@ -1,0 +1,41 @@
+.tns-outer {
+    @apply border-0;
+    position: relative;
+    margin: 0 calc(theme("spacing.2") * -1);
+    .tns-inner {
+        overflow: hidden;
+        .tns-slider {
+            display: flex;
+            .tns-item {
+                padding: 0 theme("spacing.3");
+            }
+        }
+    }
+    .tns-visually-hidden {
+        display: none;
+    }
+    .tns-controls {
+        display: none;
+    }
+    .tns-nav {
+        position: absolute;
+        bottom: 0;
+        inset-inline: 0;
+        display: flex;
+        gap: theme("spacing[1.5]");
+        justify-content: center;
+        button {
+            width: theme("spacing.3");
+            height: theme("spacing.3");
+            border-radius: theme("borderRadius.full");
+            border: 1px solid --alpha(var(--color-primary) / 20%);
+            background: --alpha(var(--color-primary) / 20%);
+            &.tns-nav-active {
+                background: --alpha(var(--color-primary) / 50%);
+            }
+        }
+    }
+    [data-action] {
+        display: none;
+    }
+}

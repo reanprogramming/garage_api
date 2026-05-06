@@ -1,0 +1,30 @@
+@import "toastify-js/src/toastify.css";
+
+.toastify {
+    @apply border-0;
+    background: none;
+    box-shadow: none;
+    padding: 0;
+    color: var(--color-foreground);
+    max-width: calc(100% - 30px);
+    @media screen(md) {
+        max-width: none;
+    }
+    .toast-close {
+        color: transparent;
+        position: absolute;
+        opacity: 1;
+        top: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        margin-top: theme("spacing.2");
+        &:before {
+            content: "×";
+            display: block;
+            font-weight: 100;
+            color: var(--color-foreground);
+            font-size: theme("fontSize.2xl");
+        }
+    }
+}
